@@ -2,16 +2,11 @@
 #include <iostream>
 
 ShipManager::ShipManager() {
-    ships.push_back(new Ship(0,4));
-    ships.push_back(new Ship(1,3));
-    ships.push_back(new Ship(2,3));
-    ships.push_back(new Ship(3,2));
-    ships.push_back(new Ship(4,2));
-    ships.push_back(new Ship(5,2));
-    ships.push_back(new Ship(6,1));
-    ships.push_back(new Ship(7,1));
-    ships.push_back(new Ship(8,1));
-    ships.push_back(new Ship(9,1));
+    std::vector<int> sizes = { 4, 3, 3, 2, 2, 2, 1, 1, 1, 1 };
+
+    for (int i = 0; i < size(sizes); i++) {
+        ships.push_back(new Ship (sizes[i]));
+    }
 }
 
 ShipManager::~ShipManager() {
@@ -24,14 +19,6 @@ std::vector<Ship*> ShipManager::getShips() {
     return ships;
 }
 
-Ship& ShipManager::getShipById(int s_id) {
-    for (auto& ship : ships) {
-        if (ship->getId() == s_id)
-            return *ship;
-    } 
-}
-
-
 Ship& ShipManager::getShipByCoordinates(Coordinates coords) {
     for (auto& ship : ships) {
         if (ship->getCoords()==coords)
@@ -40,10 +27,9 @@ Ship& ShipManager::getShipByCoordinates(Coordinates coords) {
 }
 
 void ShipManager::printShipsInfo() {
-    std::cout << "ships amount: " << size(ships)-1 << "\n\n";
+    std::cout << "\nships amount: " << size(ships)-1 << "\n\n";
     for (auto& ship:ships) {
-        std::cout << "id: " << ship->getId() << "\n"<<
-            "length: " << ship->getLength() << "\n";
+        std::cout << "length: " << ship->getLength() << "\n";
         for (int i = 0; i < size(ship->getSegments()); i++)
         {
             std::cout << "Segment " << i << " coords x: " << ship->getSegments()[i]->coord.x
@@ -84,7 +70,7 @@ void ShipManager::registerDamage(Coordinates hitCoords) {
                         }
                     }
                     if (isDestroyed) {
-                        std::cout << "ship with id: " << ship->getId() << " on coords x: " << ship->getCoords().x
+                        std::cout <<"ship on coords x: " << ship->getCoords().x
                             << " y: " << ship->getCoords().y << " is destroyed\n";
                     }
                 }

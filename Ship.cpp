@@ -2,7 +2,7 @@
 #include <iomanip>
 
 
-Ship::Ship(int shipId,int shipLength) : length(shipLength),id(shipId) {
+Ship::Ship(int shipLength) : length(shipLength) {
     if (shipLength > 4 || shipLength < 1) {
         throw std::invalid_argument("Size must be in range [1,4]");
     }
@@ -30,9 +30,6 @@ bool Ship::getIsPlaced() {
     return isPlaced;
 }
 
-int Ship::getId() {
-    return id;
-}
 
 Coordinates Ship::getCoords() {
     return coords;

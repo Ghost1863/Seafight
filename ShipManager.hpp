@@ -9,8 +9,7 @@ private:
 public:
     ShipManager();
     ~ShipManager();
-    std::vector<Ship*> getShips();
-    Ship& getShipById(int s_id);
+    std::vector<Ship*> getShips();;
     Ship& getShipByCoordinates(Coordinates coords);
 
     void printShipsInfo();

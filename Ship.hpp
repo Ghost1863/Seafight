@@ -10,18 +10,16 @@ private:
     int length;
     bool isPlaced = false;
     bool isVertical = false;
-    int id = 0;
     Coordinates coords{0,0};
     std::vector<ShipSegment*> segments;
 
 public:
-    Ship(int s_id,int s_length);
+    Ship(int shipLength);
     ~Ship();
     int getLength();
     std::vector<ShipSegment*> getSegments();
     bool getIsPlaced();
     bool getIsVertical();
-    int getId();
     Coordinates getCoords();
     bool isVerticalOrientation();
     

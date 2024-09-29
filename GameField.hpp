@@ -15,6 +15,9 @@ private:
 public:
 	GameField(int width,int height);
 	GameField(const GameField& other);
+	GameField& operator=(const GameField& other);
+	GameField(GameField&& other);
+	GameField& operator=(GameField&& other);
 
 	void drawField();
 	bool checkCurrentCoord(int x,int y);

@@ -2,6 +2,7 @@
 #include <random>
 #include <chrono>
 
+
 void setColor(int foreground, int background = 40, int attributes = 0) {
 	std::cout << "\033[" << attributes << ";" << foreground << ";" << background << "m";
 }
@@ -22,6 +23,32 @@ GameField::GameField(int g_width, int g_height) {
 GameField::GameField(const GameField& other)
 	: height(other.height), width(other.width), field(other.field) {}
 
+GameField& GameField::operator=(const GameField& other) {
+	if (this != &other) {
+		width = other.width;
+		height = other.height;
+		field = other.field;
+	}
+	return *this;
+}
+
+GameField::GameField(GameField&& other) 
+	: height(other.height), width(other.width), field(std::move(other.field)){
+		other.width = 0;
+		other.height = 0;
+		other.field.clear();
+}
+
+GameField& GameField::operator=(GameField&& other) {
+	if (this != &other) {
+		width = other.width;
+		height = other.height;
+		field = std::move(other.field);
+		other.width = 0;
+		other.height = 0;
+	}
+	return *this;
+}
 
 void GameField::drawField() {
 	std::cout << " ";
@@ -40,7 +67,7 @@ void GameField::drawField() {
 	for (auto& cell : field) {
 		
 		if (cell.status == CellStatus::HIDDEN) {
-			setColor(33);
+			setColor(34);//BLUE
 			std::cout << "~";
 		}
 		else {
@@ -133,7 +160,7 @@ bool GameField::setShip(Coordinates coords,Ship* ship, bool isVertical) {
 				return false;
 		}
 		field[coords.x + coords.y * width].value = CellValue::ShipPart;
-		ship->addSegment(new ShipSegment (2, { coords.x,coords.y}, SegmentStatus::INTACT));
+		ship->addSegment(new ShipSegment ({ coords.x,coords.y}, SegmentStatus::INTACT));
 	}
 	else {
 		return false;
@@ -141,12 +168,14 @@ bool GameField::setShip(Coordinates coords,Ship* ship, bool isVertical) {
 
 	ship->setIsVertical(isVertical);
 	ship->setCoords(coords);
+	ship->setIsPlaced(true);
+
 	if (isVertical) {
 		//start point is up
 		for (size_t i = 1; i < ship->getLength(); i++)
 		{
 			field[coords.x + (coords.y+i)*width].value = CellValue::ShipPart;
-			ship->addSegment( new ShipSegment(2, { coords.x,int(coords.y+i) }, SegmentStatus::INTACT));
+			ship->addSegment( new ShipSegment({ coords.x,int(coords.y+i) }, SegmentStatus::INTACT));
 		}
 	}
 	else {
@@ -154,7 +183,7 @@ bool GameField::setShip(Coordinates coords,Ship* ship, bool isVertical) {
 		for (size_t i = 1; i <  ship->getLength(); i++)
 		{
 			field[coords.x + coords.y * width + i].value = CellValue::ShipPart;
-			ship->addSegment(new ShipSegment(2, { int(coords.x+i),coords.y }, SegmentStatus::INTACT));
+			ship->addSegment(new ShipSegment({ int(coords.x+i),coords.y }, SegmentStatus::INTACT));
 		}
 	}
 }
@@ -173,9 +202,7 @@ void GameField::setAllShips(std::vector<Ship*> ships) {
 			int y = distr(gen);
 			bool random_bool = static_cast<bool>(distr_bool(gen));
 
-			if (this->setShip(Coordinates{ x, y }, ship, random_bool)) {
-				ship->setIsPlaced(true);
-			}
+			this->setShip(Coordinates{ x, y }, ship, random_bool);
 			
 		}
 	}
@@ -183,7 +210,7 @@ void GameField::setAllShips(std::vector<Ship*> ships) {
 
 void GameField::attackCell(Coordinates coords) {
 	if (!checkCurrentCoord(coords.x, coords.y)) {
-		std::cout << "Coordinates" << coords.x << " " << coords.y << "out of range\n";
+		std::cout << "Coordinates x: " << coords.x << " y:" << coords.y << " out of range\n";
 		return;
 	}
 	FieldCell& cell = field[coords.x + coords.y * width];
@@ -191,9 +218,11 @@ void GameField::attackCell(Coordinates coords) {
 	case CellValue::ShipPart:
 		cell.status = CellStatus::DISCLOSED;
 		cell.value = CellValue::Hit;
+		std::cout << "Segment hit x: " << coords.x << " y: " << coords.y << "\n";
 		break;
 	case CellValue::Hit:
 		cell.value = CellValue::Destroyed;
+		std::cout << "Segment destroyed x: " << coords.x << " y: " << coords.y << "\n";
 		break;
 	case CellValue::Empty:
 		cell.status = CellStatus::DISCLOSED;
