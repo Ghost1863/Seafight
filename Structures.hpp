@@ -2,7 +2,7 @@
 #include <iostream>
 
 enum class CellStatus { HIDDEN, DISCLOSED };
-enum class CellValue { Empty, Miss, ShipPart, Hit, Destroyed };
+enum class CellValue {Empty, Miss, ShipSegment};
 enum class SegmentStatus { INTACT, DAMAGED, DESTROYED };
 
 struct Coordinates {
@@ -14,15 +14,21 @@ struct Coordinates {
     }
 };
 
-struct FieldCell {
-    Coordinates coord;
-    CellStatus status;
-    CellValue value;
-};
-
 struct ShipSegment {
     Coordinates coord;
     SegmentStatus status;
     ShipSegment() : coord({ 0, 0 }), status(SegmentStatus::INTACT) {}
     ShipSegment(Coordinates coord, SegmentStatus status) : coord(coord), status(status) {}
+
+    bool operator==(const ShipSegment& other) const {
+        return (coord == other.coord) && (status == other.status);
+    }
 };
+
+struct FieldCell {
+    Coordinates coord;
+    CellStatus status;
+    CellValue value;
+    ShipSegment* shipSegment=nullptr;
+};
+

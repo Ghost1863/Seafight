@@ -7,12 +7,12 @@ void setColor(int foreground, int background = 40, int attributes = 0) {
 	std::cout << "\033[" << attributes << ";" << foreground << ";" << background << "m";
 }
 void resetColor() {
-	std::cout << "\033[0m";
+	std::cout << "\033[0m"; 
 }
 
-GameField::GameField(int g_width, int g_height) {
-	width = g_width;
-	height = g_height;
+GameField::GameField(int gf_width, int gf_height) {
+	width = gf_width;
+	height = gf_height;
 	for (int y = 0; y < height; y++) {
 		for (int x = 0; x < width; x++) {
 			field.push_back(FieldCell{ Coordinates{x,y}, CellStatus::DISCLOSED, CellValue::Empty });
@@ -72,30 +72,39 @@ void GameField::drawField() {
 		}
 		else {
 			if (cell.status == CellStatus::DISCLOSED) 
-				switch (cell.value)
-				{
-				case CellValue::ShipPart:
-					setColor(32);//GREEN
-					std::cout << "O";
-					break;
-				case CellValue::Empty:
-					setColor(34);//BLUE
-					std::cout << "#";
-					break;
-				case CellValue::Miss:
-					setColor(31);//RED
-					std::cout << "x";
-					break;
-				case CellValue::Hit:
-					setColor(33);//YELLOW
-					std::cout << "O";
-					break;
-				case CellValue::Destroyed:
-					setColor(31);//RED
-					std::cout << "O";
-					break;
-				default:
-					break;
+				if (cell.shipSegment != nullptr) {
+					switch (cell.shipSegment->status) {
+					case SegmentStatus::INTACT:
+						setColor(32);//GREEN
+						std::cout << "O";
+						break;
+
+					case SegmentStatus::DAMAGED:
+						setColor(33);//YELLOW
+						std::cout << "O";
+						break;
+
+					case SegmentStatus::DESTROYED:
+						setColor(31);//RED
+						std::cout << "O";
+						break;
+					default:
+						break;
+					}
+				}
+				else {
+					switch (cell.value) {
+					case CellValue::Empty:
+						setColor(34);//BLUE
+						std::cout << "#";
+						break;
+					case CellValue::Miss:
+						setColor(31);//RED
+						std::cout << "x";
+						break;
+					default:
+						break;
+					}
 				}
 		}
 		resetColor();
@@ -133,7 +142,7 @@ bool GameField::checkCoordsAround(int x, int y) {
 		for (int i = -1; i <= 1; i++) {
 			for (int j = -1; j <= 1; j++) {
 				if (checkCurrentCoord(x + i,y + j)) {
-					if (field[x + i + (y + j) * width].value == CellValue::ShipPart) {
+					if (field[x + i + (y + j) * width].shipSegment != nullptr) {
 						return false;
 					}
 				}
@@ -145,7 +154,9 @@ bool GameField::checkCoordsAround(int x, int y) {
 	return true;
 }
 
-bool GameField::setShip(Coordinates coords,Ship* ship, bool isVertical) {
+void GameField::setShip(Coordinates coords,Ship* ship, bool isVertical) {
+	if (!ship)
+		return;
 	bool ableToPlaceShip = true;
 	if (checkCoordsAround(coords.x, coords.y)) {
 		for (int i = 1; i < ship->getLength(); i++)
@@ -157,40 +168,40 @@ bool GameField::setShip(Coordinates coords,Ship* ship, bool isVertical) {
 				ableToPlaceShip= checkCoordsAround(coords.x + i, coords.y);
 			}
 			if (!ableToPlaceShip)
-				return false;
+				return;
 		}
-		field[coords.x + coords.y * width].value = CellValue::ShipPart;
-		ship->addSegment(new ShipSegment ({ coords.x,coords.y}, SegmentStatus::INTACT));
+		ship->getSegments()[0]->coord = Coordinates{ coords.x ,coords.y };
+		field[coords.x + coords.y * width].shipSegment = ship->getSegments()[0];
+		field[coords.x + (coords.y) * width].value = CellValue::ShipSegment;
 	}
 	else {
-		return false;
+		return;
 	}
 
 	ship->setIsVertical(isVertical);
-	ship->setCoords(coords);
 	ship->setIsPlaced(true);
 
 	if (isVertical) {
 		//start point is up
-		for (size_t i = 1; i < ship->getLength(); i++)
+		for (int i = 1; i < ship->getLength(); i++)
 		{
-			field[coords.x + (coords.y+i)*width].value = CellValue::ShipPart;
-			ship->addSegment( new ShipSegment({ coords.x,int(coords.y+i) }, SegmentStatus::INTACT));
+			ship->getSegments()[i]->coord= Coordinates{ coords.x ,coords.y + i };
+			field[coords.x + (coords.y + i) * width].shipSegment = ship->getSegments()[i];
+			field[coords.x + (coords.y + i) * width].value = CellValue::ShipSegment;
 		}
 	}
 	else {
 		//start point is left
-		for (size_t i = 1; i <  ship->getLength(); i++)
+		for (int i = 1; i <  ship->getLength(); i++)
 		{
-			field[coords.x + coords.y * width + i].value = CellValue::ShipPart;
-			ship->addSegment(new ShipSegment({ int(coords.x+i),coords.y }, SegmentStatus::INTACT));
+			ship->getSegments()[i]->coord = Coordinates{ coords.x+i,coords.y};
+			field[coords.x + i + (coords.y * width)].shipSegment = ship->getSegments()[i];
+			field[coords.x + i + (coords.y * width)].value = CellValue::ShipSegment;
 		}
 	}
 }
 
 void GameField::setAllShips(std::vector<Ship*> ships) {
-
-	std::mt19937 gen(std::chrono::steady_clock::now().time_since_epoch().count());
 	for (auto& ship : ships) {
 		while (!ship->getIsPlaced()) {
 
@@ -214,23 +225,69 @@ void GameField::attackCell(Coordinates coords) {
 		return;
 	}
 	FieldCell& cell = field[coords.x + coords.y * width];
-	switch (cell.value) {
-	case CellValue::ShipPart:
-		cell.status = CellStatus::DISCLOSED;
-		cell.value = CellValue::Hit;
-		std::cout << "Segment hit x: " << coords.x << " y: " << coords.y << "\n";
-		break;
-	case CellValue::Hit:
-		cell.value = CellValue::Destroyed;
-		std::cout << "Segment destroyed x: " << coords.x << " y: " << coords.y << "\n";
-		break;
+	cell.status = CellStatus::DISCLOSED;
+	/*if (cell.value == CellValue::ShipSegment) {
+		switch (cell.shipSegment->status) {
+		case SegmentStatus::INTACT:
+			cell.shipSegment->status = SegmentStatus::DAMAGED;
+			std::cout << "segment damaged x: " << coords.x << " y: " << coords.y << "\n";
+			break;
+
+		case SegmentStatus::DAMAGED:
+			cell.shipSegment->status = SegmentStatus::DESTROYED;
+			std::cout << "segment destroyed x: " << coords.x << " y: " << coords.y << "\n";
+			break;
+
+		case SegmentStatus::DESTROYED:
+			std::cout << "segment x: " << coords.x << " y: " << coords.y << "was already destroyed \n";
+			break;
+		default:
+			break;
+		}
+	}
+	else {
+		switch (cell.value) {
+		case CellValue::Empty:
+			cell.value = CellValue::Miss;
+			std::cout << "Miss x: " << coords.x << " y: " << coords.y << "\n";
+			break;
+		case CellValue::Miss:
+			std::cout << "Was attacked x: " << coords.x << " y: " << coords.y << "\n";
+			break;
+		default:
+			break;
+		}
+	}
+	*/
+	switch (cell.value)
+	{
 	case CellValue::Empty:
-		cell.status = CellStatus::DISCLOSED;
 		cell.value = CellValue::Miss;
-		std::cout << "Miss x: "<<coords.x<<" y: "<<coords.y<<"\n";
+		std::cout << "Miss x: " << coords.x << " y: " << coords.y << "\n";
 		break;
+	case CellValue::Miss:
+		std::cout << "Was attacked x: " << coords.x << " y: " << coords.y << "\n";
+		break;
+	case CellValue::ShipSegment: {
+		switch (cell.shipSegment->status) {
+		case SegmentStatus::INTACT:
+			cell.shipSegment->status = SegmentStatus::DAMAGED;
+			std::cout << "segment hit x: " << coords.x << " y: " << coords.y << "\n";
+			break;
+
+		case SegmentStatus::DAMAGED:
+			cell.shipSegment->status = SegmentStatus::DESTROYED;
+			std::cout << "segment destroyed x: " << coords.x << " y: " << coords.y << "\n";
+			break;
+
+		case SegmentStatus::DESTROYED:
+			std::cout << "segment x: " << coords.x << " y: " << coords.y << "was already destroyed \n";
+			break;
+		default:
+			break;
+		}
+	}
 	default:
-		std::cout << "x: "<<coords.x<<" y: "<<coords.y<< " Was attacked!\n";
 		break;
 	}
 }

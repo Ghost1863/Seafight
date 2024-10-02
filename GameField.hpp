@@ -22,7 +22,7 @@ public:
 	void drawField();
 	bool checkCurrentCoord(int x,int y);
 	bool checkCoordsAround(int x, int y);
-	bool setShip(Coordinates coords, Ship* ship, bool isVertical);
+	void setShip(Coordinates coords, Ship* ship, bool isVertical);
 	void setAllShips(std::vector<Ship*> ships);
 	void attackCell(Coordinates coords);
 };

@@ -7,11 +7,13 @@ private:
     std::vector<Ship*> ships;
 
 public:
-    ShipManager();
+    ShipManager() : ships() {};
     ~ShipManager();
-    std::vector<Ship*> getShips();;
+
+    std::vector<Ship*> getShips();
     Ship& getShipByCoordinates(Coordinates coords);
 
+    void addShip(Ship* ship);
+    void createDefaultShips();
     void printShipsInfo();
-    void registerDamage(Coordinates hitCoords);
 };
